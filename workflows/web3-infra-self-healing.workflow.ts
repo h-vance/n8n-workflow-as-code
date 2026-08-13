@@ -30,9 +30,11 @@ export class Web3InfraSelfHealing {
         mode: 'manual',
         assignments: {
             assignments: [
-                { id: 'n1', name: 'incident_id', type: 'string', value: "={{ $json.incident_id || $json.alert_id || ('ALERT-' + Date.now()) }}" },
-                { id: 'n2', name: 'service_name', type: 'string', value: '={{ $json.service_name || "unknown-service" }}' },
-                { id: 'n3', name: 'symptom', type: 'string', value: '={{ $json.symptom || $json.description || "no symptom provided" }}' },
+                // n8n's webhook node nests the real POST body under `.body` --
+                // fall back to the top-level item for non-HTTP (manual) triggers.
+                { id: 'n1', name: 'incident_id', type: 'string', value: "={{ ($json.body || $json).incident_id || ($json.body || $json).alert_id || ('ALERT-' + Date.now()) }}" },
+                { id: 'n2', name: 'service_name', type: 'string', value: '={{ ($json.body || $json).service_name || "unknown-service" }}' },
+                { id: 'n3', name: 'symptom', type: 'string', value: '={{ ($json.body || $json).symptom || ($json.body || $json).description || "no symptom provided" }}' },
             ],
         },
         includeOtherFields: false,
