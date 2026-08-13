@@ -15,7 +15,7 @@ export class Web3InfraSelfHealing {
     })
     OverviewNote = {
         content:
-            '## Web3 Infra Self-Healing Engine\n\nAn alert routes by service name into one of two diagnostic paths, gets a severity score from that diagnostic data, and branches through a human-in-the-loop approval gate before simulated self-healing runs. Diagnostics are deterministic simulations (derived from the incident ID) -- this never touches real blockchain or Kubernetes infrastructure.',
+            '## Web3 Infra Self-Healing Engine\n\nAn alert routes by service name into one of two diagnostic paths, gets a severity score from that diagnostic data, and branches through a human-in-the-loop approval gate before simulated self-healing runs. Diagnostics are deterministic simulations (derived from the incident ID); this never touches real blockchain or Kubernetes infrastructure.',
         height: 160,
         width: 700,
     };
@@ -109,7 +109,7 @@ export class Web3InfraSelfHealing {
     })
     ProtocolPathNote = {
         content:
-            '**Protocol path.** Taken when the service name looks like a blockchain node. Simulates checking RPC sync lag and peer count -- deterministic per incident ID, so the same incident always produces the same (reproducible) diagnostic result.',
+            '**Protocol path.** Taken when the service name looks like a blockchain node. Simulates checking RPC sync lag and peer count, deterministic per incident ID, so the same incident always produces the same (reproducible) diagnostic result.',
         height: 140,
         width: 520,
         color: 4,
@@ -165,7 +165,7 @@ return [{ json: { ...item, peer_count: peerCount, peers_healthy: peersHealthy, d
     })
     InfraPathNote = {
         content:
-            '**Infra path.** Taken when the service name looks like a regular API/backend service. Simulates a Kubernetes pod-restart count and a log error rate -- same determinism guarantee as the protocol path.',
+            '**Infra path.** Taken when the service name looks like a regular API/backend service. Simulates a Kubernetes pod-restart count and a log error rate, with the same determinism guarantee as the protocol path.',
         height: 140,
         width: 520,
         color: 4,
@@ -237,7 +237,7 @@ return [{ json: { ...item, severity, escalation_required } }];
     })
     ApprovalGateNote = {
         content:
-            '**Human-in-the-loop.** High-severity incidents (2+ unhealthy diagnostics) wait for a mocked senior-TSE approval; everything else auto-approves. The approval itself is mocked -- no real paging/Slack integration wired up -- but the branching logic is real.',
+            '**Human-in-the-loop.** High-severity incidents (2+ unhealthy diagnostics) wait for a mocked senior-TSE approval; everything else auto-approves. The approval itself is mocked (no real paging/Slack integration wired up), but the branching logic is real.',
         height: 160,
         width: 480,
         color: 5,
@@ -327,7 +327,7 @@ return [{ json: { ...item, remediation_action: action, remediation_status: 'comp
     })
     EvidenceNote = {
         content:
-            '**Mocked posting.** The evidence summary text is real (built from the actual run\'s data); posting it to Jira/Slack is recorded, not executed -- same rationale as escalation-autopsy\'s mocked legs.',
+            '**Mocked posting.** The evidence summary text is real (built from the actual run\'s data); posting it to Jira/Slack is recorded, not executed, for the same reason as escalation-autopsy\'s mocked legs.',
         height: 160,
         width: 480,
         color: 5,

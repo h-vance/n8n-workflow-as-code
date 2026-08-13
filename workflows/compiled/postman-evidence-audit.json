@@ -4,7 +4,7 @@
   "active": false,
   "nodes": [
     {
-      "id": "f78f5a92-3496-4a83-adf1-2d5d960d66b8",
+      "id": "9c49c6cc-04bb-41d7-85ee-10cc9e09551a",
       "name": "Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -13,13 +13,13 @@
         -220
       ],
       "parameters": {
-        "content": "## Postman Evidence Audit\n\nAn audit request comes in over webhook and triggers a **live Newman run of the real postman-tse-incident-lab Postman collection** -- fetched straight from GitHub raw URLs, run against the actual lab_api.py process (4 incident scenarios: revoked key, insufficient scope, wrong endpoint, rate limit), each with genuine pm.test() assertions. This is the same collection that repo's own CI runs via the Postman CLI; here it runs via Newman inside the n8n container.",
+        "content": "## Postman Evidence Audit\n\nAn audit request comes in over webhook and triggers a **live Newman run of the real postman-tse-incident-lab Postman collection**, fetched straight from GitHub raw URLs, run against the actual lab_api.py process (4 incident scenarios: revoked key, insufficient scope, wrong endpoint, rate limit), each with genuine pm.test() assertions. This is the same collection that repo's own CI runs via the Postman CLI; here it runs via Newman inside the n8n container.",
         "height": 190,
         "width": 700
       }
     },
     {
-      "id": "bbcdd2c5-6c4d-47a2-9c64-4f43970e1904",
+      "id": "1e3d59f9-9d87-413e-b351-d3a8806514a7",
       "name": "Audit Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "d331b739-f0e0-4c8b-a4d5-5e88438db44b",
+      "id": "40ec092d-24b1-4dc5-8206-28ed416917c8",
       "name": "Newman Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -44,14 +44,14 @@
         -220
       ],
       "parameters": {
-        "content": "**Real, not simulated.** child_process.execSync shells out to `npx newman run` against the actual collection + environment files (fetched live from GitHub) and the actual lab API on the host. If a real regression breaks an assertion, this reports it as a real failure -- nothing here is hand-authored to always pass.",
+        "content": "**Real, not simulated.** child_process.execSync shells out to `npx newman run` against the actual collection + environment files (fetched live from GitHub) and the actual lab API on the host. If a real regression breaks an assertion, this reports it as a real failure. Nothing here is hand-authored to always pass.",
         "height": 170,
         "width": 420,
         "color": 4
       }
     },
     {
-      "id": "ab8a473a-a1dd-4617-a91f-b717a841b627",
+      "id": "9baa8c97-2c7d-4399-9937-a1040880f7ba",
       "name": "Run Newman Audit",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -66,7 +66,7 @@
       }
     },
     {
-      "id": "81b35036-449c-4bb3-88a1-d71ceb69d9e7",
+      "id": "6387210d-598a-4a70-907d-d2e3bb549c4a",
       "name": "Format Evidence Summary",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -97,7 +97,7 @@
       }
     },
     {
-      "id": "255cf972-6ecc-466d-a124-e9cb2408fa2c",
+      "id": "1fd23036-3732-4343-bc54-ec4448fe1c08",
       "name": "Slack Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -113,7 +113,7 @@
       }
     },
     {
-      "id": "217f744f-c7b0-4dfd-b689-1cb83e3a1921",
+      "id": "eadab7a0-5c6a-4078-9f25-deffad91e534",
       "name": "Post to Slack (mocked)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -150,7 +150,7 @@
       }
     },
     {
-      "id": "94a5d7f2-acfd-4f44-9c79-6b8127432774",
+      "id": "cdca9d9d-e707-49b9-8f7a-46cc2e814470",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,

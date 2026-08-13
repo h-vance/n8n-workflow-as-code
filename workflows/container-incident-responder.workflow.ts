@@ -15,7 +15,7 @@ export class ContainerIncidentResponder {
     })
     OverviewNote = {
         content:
-            '## Container Incident Responder\n\nAn alert routes by target type into one of two **real** remediation paths: Docker (raw HTTP over the mounted host Docker socket -- no CLI) or Kubernetes (kubectl against a live local kind cluster). Both inspect before, remediate, and re-inspect after, so the evidence packet proves whether the restart actually happened -- not just that a request was sent.',
+            '## Container Incident Responder\n\nAn alert routes by target type into one of two **real** remediation paths: Docker (raw HTTP over the mounted host Docker socket, no CLI) or Kubernetes (kubectl against a live local kind cluster). Both inspect before, remediate, and re-inspect after, so the evidence packet proves whether the restart actually happened, not just that a request was sent.',
         height: 190,
         width: 900,
     };
@@ -110,7 +110,7 @@ export class ContainerIncidentResponder {
     })
     DockerNote = {
         content:
-            '**Real, not simulated.** Speaks the Docker Engine API directly over the mounted /var/run/docker.sock (raw Node http module) -- no docker CLI installed. Inspects the container\'s actual State (PID, health) before and after so the PID change proves a genuine process restart, not a no-op.',
+            '**Real, not simulated.** Speaks the Docker Engine API directly over the mounted /var/run/docker.sock (raw Node http module, no docker CLI installed). Inspects the container\'s actual State (PID, health) before and after so the PID change proves a genuine process restart, not a no-op.',
         height: 180,
         width: 420,
         color: 4,
@@ -137,7 +137,7 @@ export class ContainerIncidentResponder {
     })
     K8sNote = {
         content:
-            '**Real, not simulated.** Shells out to the actual kubectl binary (added to this repo\'s custom n8n image) against a live local kind cluster on a shared Docker network. Runs a genuine `kubectl rollout restart` and waits on `kubectl rollout status` for it to finish -- the new pod name in the evidence packet is proof a fresh pod actually replaced the old one.',
+            '**Real, not simulated.** Shells out to the actual kubectl binary (added to this repo\'s custom n8n image) against a live local kind cluster on a shared Docker network. Runs a genuine `kubectl rollout restart` and waits on `kubectl rollout status` for it to finish. The new pod name in the evidence packet is proof a fresh pod actually replaced the old one.',
         height: 190,
         width: 460,
         color: 4,

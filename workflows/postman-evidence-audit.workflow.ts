@@ -15,7 +15,7 @@ export class PostmanEvidenceAudit {
     })
     OverviewNote = {
         content:
-            '## Postman Evidence Audit\n\nAn audit request comes in over webhook and triggers a **live Newman run of the real postman-tse-incident-lab Postman collection** -- fetched straight from GitHub raw URLs, run against the actual lab_api.py process (4 incident scenarios: revoked key, insufficient scope, wrong endpoint, rate limit), each with genuine pm.test() assertions. This is the same collection that repo\'s own CI runs via the Postman CLI; here it runs via Newman inside the n8n container.',
+            '## Postman Evidence Audit\n\nAn audit request comes in over webhook and triggers a **live Newman run of the real postman-tse-incident-lab Postman collection**, fetched straight from GitHub raw URLs, run against the actual lab_api.py process (4 incident scenarios: revoked key, insufficient scope, wrong endpoint, rate limit), each with genuine pm.test() assertions. This is the same collection that repo\'s own CI runs via the Postman CLI; here it runs via Newman inside the n8n container.',
         height: 190,
         width: 700,
     };
@@ -41,7 +41,7 @@ export class PostmanEvidenceAudit {
     })
     NewmanNote = {
         content:
-            '**Real, not simulated.** child_process.execSync shells out to `npx newman run` against the actual collection + environment files (fetched live from GitHub) and the actual lab API on the host. If a real regression breaks an assertion, this reports it as a real failure -- nothing here is hand-authored to always pass.',
+            '**Real, not simulated.** child_process.execSync shells out to `npx newman run` against the actual collection + environment files (fetched live from GitHub) and the actual lab API on the host. If a real regression breaks an assertion, this reports it as a real failure. Nothing here is hand-authored to always pass.',
         height: 170,
         width: 420,
         color: 4,
