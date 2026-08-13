@@ -4,13 +4,6 @@
 [![TypeScript](https://www.shieldcn.dev/badge/TypeScript-000000.svg?variant=default&logo=TypeScript&logoColor=FFFFFF&size=xs)](https://www.typescriptlang.org)
 [![Docker](https://www.shieldcn.dev/badge/Docker-000000.svg?variant=default&logo=Docker&logoColor=FFFFFF&size=xs)](https://www.docker.com)
 
-> **Portfolio n8n workflows authored as version-controlled TypeScript, built and verified against a real running n8n instance — not exported once and forgotten.**
-
-## Why this repo exists
-
-A prior set of n8n workflows was lost: they were built by hand in a self-hosted instance's editor and only ever lived in that instance's Postgres database. No file, no git history — a hard-drive wipe took them with it. This repo fixes that structurally: every workflow here is authored as a `.workflow.ts` source file using [`@n8n-as-code`](https://n8nascode.dev), pushed into a real n8n instance, executed for real, then exported to JSON. Both the source and the compiled JSON are committed and pushed immediately — never batched, never left sitting only in a database.
-
-## Workflows
 
 | Workflow | What it demonstrates |
 |----------|----------------------|
