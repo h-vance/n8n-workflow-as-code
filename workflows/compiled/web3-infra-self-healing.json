@@ -1,0 +1,596 @@
+[
+  {
+    "updatedAt": "2026-08-13T16:39:51.879Z",
+    "createdAt": "2026-08-13T16:38:31.083Z",
+    "id": "mCoL6NBg5JPme19a",
+    "name": "Web3 Infra Self-Healing Engine",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "bef88983-0f33-4aba-9d11-6d24e4878f8a",
+        "name": "Alert Intake",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -700,
+          300
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "web3-infra-self-healing",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "b5e18ec9-cfb2-4163-81b4-150bf6b1d24e"
+      },
+      {
+        "id": "0003c7b4-ea57-4363-8f0f-db0ef20e1941",
+        "name": "Normalize Incident Context",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -460,
+          300
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "n1",
+                "name": "incident_id",
+                "type": "string",
+                "value": "={{ $json.incident_id || $json.alert_id || ('ALERT-' + Date.now()) }}"
+              },
+              {
+                "id": "n2",
+                "name": "service_name",
+                "type": "string",
+                "value": "={{ $json.service_name || \"unknown-service\" }}"
+              },
+              {
+                "id": "n3",
+                "name": "symptom",
+                "type": "string",
+                "value": "={{ $json.symptom || $json.description || \"no symptom provided\" }}"
+              }
+            ]
+          },
+          "includeOtherFields": false,
+          "options": {}
+        }
+      },
+      {
+        "id": "56e0aa6f-c816-4551-b41f-7069570f957a",
+        "name": "Route by Failure Type",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          -220,
+          300
+        ],
+        "parameters": {
+          "mode": "rules",
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "id": "cond-protocol",
+                      "leftValue": "={{ $json.service_name }}",
+                      "rightValue": "node",
+                      "operator": {
+                        "type": "string",
+                        "operation": "contains"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "protocol"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "id": "cond-infra",
+                      "leftValue": "={{ $json.service_name }}",
+                      "rightValue": "api",
+                      "operator": {
+                        "type": "string",
+                        "operation": "contains"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "infra"
+              }
+            ]
+          },
+          "options": {
+            "fallbackOutput": "extra",
+            "renameFallbackOutput": "infra"
+          }
+        }
+      },
+      {
+        "id": "14fad1ef-1e04-406c-86e5-45211c04c2d0",
+        "name": "Check RPC Sync",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          40,
+          180
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\n// Simulated diagnostic (this repo never touches real validator/RPC\n// infrastructure) but the logic genuinely runs: derive a deterministic\n// \"block lag\" from the incident id so different incidents produce\n// different, reproducible results instead of a static stub.\nconst item = $input.item.json;\nlet hash = 0;\nfor (const ch of item.incident_id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;\nconst blockLag = hash % 40;\nconst rpcHealthy = blockLag < 12;\nreturn [{ json: { ...item, block_lag: blockLag, rpc_healthy: rpcHealthy } }];\n"
+        }
+      },
+      {
+        "id": "23199ea9-9222-4bff-bdd9-8e37a6945324",
+        "name": "Scan Peer/Log Signal",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          280,
+          180
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\nconst item = $input.item.json;\nlet hash = 0;\nfor (const ch of item.incident_id) hash = (hash * 17 + ch.charCodeAt(0)) >>> 0;\nconst peerCount = 8 + (hash % 20);\nconst peersHealthy = peerCount >= 12;\nreturn [{ json: { ...item, peer_count: peerCount, peers_healthy: peersHealthy, diagnostic_path: 'protocol' } }];\n"
+        }
+      },
+      {
+        "id": "f26a0c57-9d27-41f6-9023-5237f6b63162",
+        "name": "Worker: K8s Context",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          40,
+          420
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\n// Simulated K8s describe summary -- deterministic per incident, not a stub.\nconst item = $input.item.json;\nlet hash = 0;\nfor (const ch of item.incident_id) hash = (hash * 13 + ch.charCodeAt(0)) >>> 0;\nconst restartCount = hash % 6;\nconst podHealthy = restartCount < 3;\nreturn [{ json: { ...item, pod_restart_count: restartCount, pod_healthy: podHealthy } }];\n"
+        }
+      },
+      {
+        "id": "c5c7c639-198b-4e51-909d-19209f22e74d",
+        "name": "Worker: Log Analysis",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          280,
+          420
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\nconst item = $input.item.json;\nlet hash = 0;\nfor (const ch of item.incident_id) hash = (hash * 23 + ch.charCodeAt(0)) >>> 0;\nconst errorRatePercent = hash % 25;\nconst logsHealthy = errorRatePercent < 8;\nreturn [{ json: { ...item, error_rate_percent: errorRatePercent, logs_healthy: logsHealthy, diagnostic_path: 'infra' } }];\n"
+        }
+      },
+      {
+        "id": "6f3f2622-d3a5-4c3c-a399-5c9069d7a21d",
+        "name": "Compute Severity Score",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          540,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\nconst item = $input.item.json;\nconst healthyFlags = [item.rpc_healthy, item.peers_healthy, item.pod_healthy, item.logs_healthy].filter((v) => v !== undefined);\nconst unhealthyCount = healthyFlags.filter((v) => v === false).length;\nconst severity = unhealthyCount === 0 ? 'low' : unhealthyCount === 1 ? 'medium' : 'high';\nconst escalation_required = severity === 'high';\nreturn [{ json: { ...item, severity, escalation_required } }];\n"
+        }
+      },
+      {
+        "id": "be441710-15c0-4ba8-828b-861c483c84e6",
+        "name": "Senior TSE Approval Gate",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          780,
+          300
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cond-escalation",
+                "leftValue": "={{ $json.escalation_required }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "6d0bd027-6184-447f-938f-d4fe5d13f27e",
+        "name": "Await Senior TSE Approval (mocked)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1020,
+          220
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "a1",
+                "name": "approved",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "a2",
+                "name": "approval_mode",
+                "type": "string",
+                "value": "mocked-manual-approval"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "9253ba2f-435f-491b-9aa0-0121425be2f4",
+        "name": "Auto-Approve (low severity)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1020,
+          380
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "b1",
+                "name": "approved",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "b2",
+                "name": "approval_mode",
+                "type": "string",
+                "value": "auto-approved"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "57d00167-46ca-46be-bed5-0f41cf0fd5a1",
+        "name": "Execute Self-Healing",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1260,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\nconst item = $input.item.json;\nconst action = item.diagnostic_path === 'protocol'\n  ? 'RPC resync triggered, peer table refreshed'\n  : 'Rolling restart executed on affected pods';\nreturn [{ json: { ...item, remediation_action: action, remediation_status: 'completed' } }];\n"
+        }
+      },
+      {
+        "id": "80c948b5-283c-4f1d-bdd3-31a99dd48b6f",
+        "name": "Build Evidence Packet",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1500,
+          300
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "ev1",
+                "name": "evidence_summary",
+                "type": "string",
+                "value": "={{ '*' + $json.incident_id + '* (' + $json.service_name + ')\\nSeverity: ' + $json.severity + '\\nApproval: ' + $json.approval_mode + '\\nRemediation: ' + $json.remediation_action + '\\nStatus: ' + $json.remediation_status }}"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "1167be4c-5bfe-44a5-afe6-c202d630f846",
+        "name": "Post Evidence Packet (mocked)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1740,
+          300
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "p1",
+                "name": "mocked",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "p2",
+                "name": "would_post_jira_slack",
+                "type": "string",
+                "value": "={{ $json.evidence_summary }}"
+              }
+            ]
+          },
+          "includeOtherFields": false,
+          "options": {}
+        }
+      },
+      {
+        "id": "e51a86ff-25b5-409c-901a-13f7a59be217",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.2,
+        "position": [
+          1980,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}"
+        }
+      }
+    ],
+    "connections": {
+      "Alert Intake": {
+        "main": [
+          [
+            {
+              "node": "Normalize Incident Context",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Incident Context": {
+        "main": [
+          [
+            {
+              "node": "Route by Failure Type",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route by Failure Type": {
+        "main": [
+          [
+            {
+              "node": "Check RPC Sync",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Worker: K8s Context",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check RPC Sync": {
+        "main": [
+          [
+            {
+              "node": "Scan Peer/Log Signal",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scan Peer/Log Signal": {
+        "main": [
+          [
+            {
+              "node": "Compute Severity Score",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Worker: K8s Context": {
+        "main": [
+          [
+            {
+              "node": "Worker: Log Analysis",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Worker: Log Analysis": {
+        "main": [
+          [
+            {
+              "node": "Compute Severity Score",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compute Severity Score": {
+        "main": [
+          [
+            {
+              "node": "Senior TSE Approval Gate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Senior TSE Approval Gate": {
+        "main": [
+          [
+            {
+              "node": "Await Senior TSE Approval (mocked)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Auto-Approve (low severity)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Await Senior TSE Approval (mocked)": {
+        "main": [
+          [
+            {
+              "node": "Execute Self-Healing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Auto-Approve (low severity)": {
+        "main": [
+          [
+            {
+              "node": "Execute Self-Healing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute Self-Healing": {
+        "main": [
+          [
+            {
+              "node": "Build Evidence Packet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Evidence Packet": {
+        "main": [
+          [
+            {
+              "node": "Post Evidence Packet (mocked)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Post Evidence Packet (mocked)": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "f64e8464-31bc-46f5-bc46-a0ea243bc5f5",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-08-13T16:38:31.083Z",
+        "createdAt": "2026-08-13T16:38:31.083Z",
+        "role": "workflow:owner",
+        "workflowId": "mCoL6NBg5JPme19a",
+        "projectId": "Y4KzgzyrueKywARS",
+        "project": {
+          "updatedAt": "2026-08-13T16:22:03.189Z",
+          "createdAt": "2026-08-13T16:21:05.643Z",
+          "id": "Y4KzgzyrueKywARS",
+          "name": "Harrison Vance <owner@example.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "ed1e1dd4-9120-4a52-861c-5ee50fcfde8c"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]
