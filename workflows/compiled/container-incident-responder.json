@@ -4,7 +4,7 @@
   "active": false,
   "nodes": [
     {
-      "id": "56ff673f-179f-4667-871d-503acc416010",
+      "id": "e2e8f018-54be-4319-b6ad-24e81935fa57",
       "name": "Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -13,13 +13,13 @@
         -260
       ],
       "parameters": {
-        "content": "## Container Incident Responder\n\nAn alert routes by target type into one of two **real** remediation paths: Docker (raw HTTP over the mounted host Docker socket -- no CLI) or Kubernetes (kubectl against a live local kind cluster). Both inspect before, remediate, and re-inspect after, so the evidence packet proves whether the restart actually happened -- not just that a request was sent.",
+        "content": "## Container Incident Responder\n\nAn alert routes by target type into one of two **real** remediation paths: Docker (raw HTTP over the mounted host Docker socket, no CLI) or Kubernetes (kubectl against a live local kind cluster). Both inspect before, remediate, and re-inspect after, so the evidence packet proves whether the restart actually happened, not just that a request was sent.",
         "height": 190,
         "width": 900
       }
     },
     {
-      "id": "8dbe2a66-9903-4429-adb0-04f88a3a01e0",
+      "id": "7d5f272a-1145-477c-b396-17b661b673fc",
       "name": "Incident Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "deb54b2f-6d88-4f7e-8518-a69af44bdbd7",
+      "id": "fb3ed181-a291-4831-8392-9f24cb33db12",
       "name": "Normalize Incident",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -78,7 +78,7 @@
       }
     },
     {
-      "id": "7fe23e83-fc1e-4fd5-9971-3a887725e82d",
+      "id": "e9e26d03-e2b5-432a-94ce-0294c447630b",
       "name": "Route by Target Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -145,7 +145,7 @@
       }
     },
     {
-      "id": "40501ddd-1ca4-4fe4-812f-f37071c4d7ee",
+      "id": "4dfd3562-24bd-4790-adfd-e7160d1f3fe5",
       "name": "Docker Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -154,14 +154,14 @@
         -260
       ],
       "parameters": {
-        "content": "**Real, not simulated.** Speaks the Docker Engine API directly over the mounted /var/run/docker.sock (raw Node http module) -- no docker CLI installed. Inspects the container's actual State (PID, health) before and after so the PID change proves a genuine process restart, not a no-op.",
+        "content": "**Real, not simulated.** Speaks the Docker Engine API directly over the mounted /var/run/docker.sock (raw Node http module, no docker CLI installed). Inspects the container's actual State (PID, health) before and after so the PID change proves a genuine process restart, not a no-op.",
         "height": 180,
         "width": 420,
         "color": 4
       }
     },
     {
-      "id": "0291d14b-df97-4da3-9bfd-896887be16de",
+      "id": "95127304-6cd7-41e8-8f86-6c6ed261d663",
       "name": "Docker: Inspect + Restart",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -176,7 +176,7 @@
       }
     },
     {
-      "id": "3a32e08c-944d-4fce-a00a-da2875b21fe0",
+      "id": "9e8267a8-44f0-4206-9696-770e53d2284c",
       "name": "K8s Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -185,14 +185,14 @@
         -260
       ],
       "parameters": {
-        "content": "**Real, not simulated.** Shells out to the actual kubectl binary (added to this repo's custom n8n image) against a live local kind cluster on a shared Docker network. Runs a genuine `kubectl rollout restart` and waits on `kubectl rollout status` for it to finish -- the new pod name in the evidence packet is proof a fresh pod actually replaced the old one.",
+        "content": "**Real, not simulated.** Shells out to the actual kubectl binary (added to this repo's custom n8n image) against a live local kind cluster on a shared Docker network. Runs a genuine `kubectl rollout restart` and waits on `kubectl rollout status` for it to finish. The new pod name in the evidence packet is proof a fresh pod actually replaced the old one.",
         "height": 190,
         "width": 460,
         "color": 4
       }
     },
     {
-      "id": "b742f026-39d8-4145-a753-c95abe6f4b90",
+      "id": "281c0a4d-6d12-497d-833a-7c277e06cd8f",
       "name": "K8s: Inspect + Rollout Restart",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -207,7 +207,7 @@
       }
     },
     {
-      "id": "6f83db25-a4c2-48b4-a796-3aaaec800fb0",
+      "id": "a2617f15-8ab8-4305-b3f9-0a4d2af6596a",
       "name": "Format Evidence Summary",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -238,7 +238,7 @@
       }
     },
     {
-      "id": "2bfbcb3e-81f0-46f5-a0a1-0b8180f9b47b",
+      "id": "103416f6-a7d9-49ab-a658-1bc82c914557",
       "name": "Slack Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -254,7 +254,7 @@
       }
     },
     {
-      "id": "133b91a1-f035-4d32-b0bc-e4ea54a680f3",
+      "id": "1a066abd-d08f-4c22-a9e7-79955db69d39",
       "name": "Post to Slack (mocked)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -291,7 +291,7 @@
       }
     },
     {
-      "id": "25af2a1a-b2cf-4858-b9af-3c3da97e19f9",
+      "id": "f8742f3b-25ad-46e3-93a1-18c67e87a6e5",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,

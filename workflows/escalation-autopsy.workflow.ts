@@ -52,7 +52,7 @@ export class EscalationAutopsyWorkflow {
     })
     OverviewNote = {
         content:
-            '## Escalation Autopsy\n\nAn incident comes in over webhook, gets triaged by a **live call to aws-bedrock-ops-agent\'s MCP server** (real JSON-RPC over streamable-HTTP -- n8n community edition has no MCP client node, so this is hand-rolled in a Code node), then fans out to a Slack summary and a postmortem draft.',
+            '## Escalation Autopsy\n\nAn incident comes in over webhook, gets triaged by a **live call to aws-bedrock-ops-agent\'s MCP server** (real JSON-RPC over streamable-HTTP; n8n community edition has no MCP client node, so this is hand-rolled in a Code node), then fans out to a Slack summary and a postmortem draft.',
         height: 160,
         width: 460,
     };
