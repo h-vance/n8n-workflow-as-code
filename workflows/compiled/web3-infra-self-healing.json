@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-08-13T16:53:44.893Z",
+    "updatedAt": "2026-08-13T17:11:53.922Z",
     "createdAt": "2026-08-13T16:51:02.700Z",
     "id": "5HhcIUu6IwcObJbP",
     "name": "Web3 Infra Self-Healing Engine",
@@ -9,7 +9,22 @@
     "isArchived": false,
     "nodes": [
       {
-        "id": "95b92f0d-38a9-43e6-b824-d714c41b5ae3",
+        "id": "a6faba43-b843-4c97-a6fc-10217851c821",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -700,
+          -180
+        ],
+        "parameters": {
+          "content": "## Web3 Infra Self-Healing Engine\n\nAn alert routes by service name into one of two diagnostic paths, gets a severity score from that diagnostic data, and branches through a human-in-the-loop approval gate before simulated self-healing runs. Diagnostics are deterministic simulations (derived from the incident ID) -- this never touches real blockchain or Kubernetes infrastructure.",
+          "height": 160,
+          "width": 700
+        }
+      },
+      {
+        "id": "8f37717f-aed2-4be8-a18e-86e8aae69db5",
         "name": "Alert Intake",
         "type": "n8n-nodes-base.webhook",
         "typeVersion": 2,
@@ -23,10 +38,10 @@
           "responseMode": "responseNode",
           "options": {}
         },
-        "webhookId": "b31b47ae-d58f-45d1-9ed0-525b2cbcc11c"
+        "webhookId": "ed90834f-5161-46d9-8771-13a38a370d29"
       },
       {
-        "id": "f8821976-4929-418e-b907-027e981a934e",
+        "id": "30b1d7c0-b32c-4bc8-bf48-4833f86d12bd",
         "name": "Normalize Incident Context",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -63,7 +78,7 @@
         }
       },
       {
-        "id": "f59c77e4-fe4b-4d85-b4d1-7cdc60ea054f",
+        "id": "29bacae6-14ef-4213-80f3-f70a03c1151b",
         "name": "Route by Failure Type",
         "type": "n8n-nodes-base.switch",
         "typeVersion": 3.2,
@@ -130,7 +145,23 @@
         }
       },
       {
-        "id": "3bed1982-a1b0-4abd-868c-bd619eea3253",
+        "id": "45b5ed6a-6b69-4528-a951-ec08b5e7ffa3",
+        "name": "Protocol Path Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          40,
+          20
+        ],
+        "parameters": {
+          "content": "**Protocol path.** Taken when the service name looks like a blockchain node. Simulates checking RPC sync lag and peer count -- deterministic per incident ID, so the same incident always produces the same (reproducible) diagnostic result.",
+          "height": 140,
+          "width": 520,
+          "color": 4
+        }
+      },
+      {
+        "id": "f225e9b9-37e6-4bf0-916b-e2d4c4a7218f",
         "name": "Check RPC Sync",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -145,7 +176,7 @@
         }
       },
       {
-        "id": "3b288d2a-4e5a-40bb-bb06-f9e8fa6fbeaf",
+        "id": "d518f695-917b-485f-9a89-22a1e2d368e5",
         "name": "Scan Peer/Log Signal",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -160,7 +191,23 @@
         }
       },
       {
-        "id": "0fdc189c-d5ac-48c1-822b-c4cb85424c62",
+        "id": "a36ff0f1-5523-409e-86be-ea462b7da420",
+        "name": "Infra Path Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          40,
+          600
+        ],
+        "parameters": {
+          "content": "**Infra path.** Taken when the service name looks like a regular API/backend service. Simulates a Kubernetes pod-restart count and a log error rate -- same determinism guarantee as the protocol path.",
+          "height": 140,
+          "width": 520,
+          "color": 4
+        }
+      },
+      {
+        "id": "3a518873-c1c6-41b4-940c-812a01b4a39a",
         "name": "Worker: K8s Context",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -175,7 +222,7 @@
         }
       },
       {
-        "id": "d74aec72-49f6-4937-a23d-062cbbdebee7",
+        "id": "2356ad68-3726-448c-8e75-b7256955a1d9",
         "name": "Worker: Log Analysis",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -190,7 +237,7 @@
         }
       },
       {
-        "id": "60598bca-993f-4762-9f25-992c38d3b9f4",
+        "id": "30f65c44-f598-4d10-9df9-b7c32cb367fd",
         "name": "Compute Severity Score",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -205,7 +252,23 @@
         }
       },
       {
-        "id": "e245c956-ba8e-44f1-b949-a3ab08f0e883",
+        "id": "9b780d2c-7bff-4677-9f54-ccd5dfc2dd11",
+        "name": "Approval Gate Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          780,
+          -180
+        ],
+        "parameters": {
+          "content": "**Human-in-the-loop.** High-severity incidents (2+ unhealthy diagnostics) wait for a mocked senior-TSE approval; everything else auto-approves. The approval itself is mocked -- no real paging/Slack integration wired up -- but the branching logic is real.",
+          "height": 160,
+          "width": 480,
+          "color": 5
+        }
+      },
+      {
+        "id": "cf01a696-ed06-4542-b0ac-988dcb6cb91a",
         "name": "Senior TSE Approval Gate",
         "type": "n8n-nodes-base.if",
         "typeVersion": 2.2,
@@ -238,7 +301,7 @@
         }
       },
       {
-        "id": "4b32e459-4396-47c4-8dbd-70e716b83805",
+        "id": "dfc9157b-aa0a-4d4f-be38-3d3202c7410f",
         "name": "Await Senior TSE Approval (mocked)",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -269,7 +332,7 @@
         }
       },
       {
-        "id": "73e5c6e2-95a4-4bb2-ba75-88278e1d8e58",
+        "id": "cc1f1694-6144-4607-b72b-13b34f9d0542",
         "name": "Auto-Approve (low severity)",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -300,7 +363,7 @@
         }
       },
       {
-        "id": "b1d29a95-2c2f-4986-95bc-47a6e59817aa",
+        "id": "a8df539f-22b7-4459-81ee-d88995ac5351",
         "name": "Execute Self-Healing",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -315,7 +378,23 @@
         }
       },
       {
-        "id": "5f4b601d-b0cd-4ca9-b9a7-98c720762006",
+        "id": "0876a250-71cd-494d-9b82-ce1b95e50409",
+        "name": "Evidence Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1500,
+          -180
+        ],
+        "parameters": {
+          "content": "**Mocked posting.** The evidence summary text is real (built from the actual run's data); posting it to Jira/Slack is recorded, not executed -- same rationale as escalation-autopsy's mocked legs.",
+          "height": 160,
+          "width": 480,
+          "color": 5
+        }
+      },
+      {
+        "id": "f4aeec1f-de6c-41ad-b210-dd0d6d1ccbdc",
         "name": "Build Evidence Packet",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -340,7 +419,7 @@
         }
       },
       {
-        "id": "bcbc1748-7d4b-4412-899e-c1df3f9127a7",
+        "id": "d531a7ba-a550-4ec1-82a5-2be1c8736e83",
         "name": "Post Evidence Packet (mocked)",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -371,7 +450,7 @@
         }
       },
       {
-        "id": "3a9dd912-e725-4bfa-b0a2-d69b8d75215c",
+        "id": "0b993428-45a9-4fb5-b69e-02c7f4767aff",
         "name": "Respond to Webhook",
         "type": "n8n-nodes-base.respondToWebhook",
         "typeVersion": 1.2,
@@ -562,9 +641,9 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "5b42b954-64bd-4c1d-b8b4-9cac63f2a3ad",
-    "activeVersionId": "5b42b954-64bd-4c1d-b8b4-9cac63f2a3ad",
-    "versionCounter": 2,
+    "versionId": "ed45c92f-76e1-4073-b273-e7f2bd1819e7",
+    "activeVersionId": "ed45c92f-76e1-4073-b273-e7f2bd1819e7",
+    "versionCounter": 3,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
@@ -576,10 +655,10 @@
         "workflowId": "5HhcIUu6IwcObJbP",
         "projectId": "I2b0k33sXtEtVS5V",
         "project": {
-          "updatedAt": "2026-08-13T16:47:05.653Z",
+          "updatedAt": "2026-08-13T16:57:13.911Z",
           "createdAt": "2026-08-13T16:46:52.598Z",
           "id": "I2b0k33sXtEtVS5V",
-          "name": "Harrison Vance <owner@example.com>",
+          "name": "Harrison Vance <hvance788@gmail.com>",
           "type": "personal",
           "icon": null,
           "description": null,
