@@ -1,0 +1,159 @@
+import { workflow, node, links } from '@n8n-as-code/transformer';
+
+@workflow({
+    id: 'postman-evidence-audit',
+    name: 'Postman Evidence Audit',
+    active: false,
+    settings: { executionOrder: 'v1' },
+})
+export class PostmanEvidenceAudit {
+    @node({
+        name: 'Overview',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [-700, -220],
+    })
+    OverviewNote = {
+        content:
+            '## Postman Evidence Audit\n\nAn audit request comes in over webhook and triggers a **live Newman run of the real postman-tse-incident-lab Postman collection** -- fetched straight from GitHub raw URLs, run against the actual lab_api.py process (4 incident scenarios: revoked key, insufficient scope, wrong endpoint, rate limit), each with genuine pm.test() assertions. This is the same collection that repo\'s own CI runs via the Postman CLI; here it runs via Newman inside the n8n container.',
+        height: 190,
+        width: 700,
+    };
+
+    @node({
+        name: 'Audit Trigger',
+        type: 'n8n-nodes-base.webhook',
+        version: 2,
+        position: [-700, 300],
+    })
+    AuditTrigger = {
+        httpMethod: 'POST',
+        path: 'postman-evidence-audit',
+        responseMode: 'responseNode',
+        options: {},
+    };
+
+    @node({
+        name: 'Newman Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [-460, -220],
+    })
+    NewmanNote = {
+        content:
+            '**Real, not simulated.** child_process.execSync shells out to `npx newman run` against the actual collection + environment files (fetched live from GitHub) and the actual lab API on the host. If a real regression breaks an assertion, this reports it as a real failure -- nothing here is hand-authored to always pass.',
+        height: 170,
+        width: 420,
+        color: 4,
+    };
+
+    @node({
+        name: 'Run Newman Audit',
+        type: 'n8n-nodes-base.code',
+        version: 2,
+        position: [-460, 300],
+    })
+    RunNewmanAudit = {
+        mode: 'runOnceForAllItems',
+        language: 'javaScript',
+        jsCode:
+            "\nconst { execSync } = require('child_process');\nconst fs = require('fs');\n\n// n8n's webhook node nests the real POST body under `.body` -- fall back\n// to the top-level item for non-HTTP (manual) triggers.\nconst payload = $input.item.json.body || $input.item.json;\nconst incidentId = payload.incident_id || ('AUDIT-' + Date.now());\nconst baseUrl = payload.base_url || 'http://host.docker.internal:8088';\nconst reportPath = '/tmp/newman-' + incidentId.replace(/[^a-zA-Z0-9_-]/g, '') + '-' + Date.now() + '.json';\n\nconst collectionUrl = 'https://raw.githubusercontent.com/h-vance/postman-tse-incident-lab/main/postman/tse-api-incident-lab.postman_collection.json';\nconst environmentUrl = 'https://raw.githubusercontent.com/h-vance/postman-tse-incident-lab/main/postman/tse-local-lab.postman_environment.json';\n\nconst cmd = [\n  'npx --yes newman run', collectionUrl,\n  '-e', environmentUrl,\n  '--env-var', 'base_url=' + baseUrl,\n  '--reporters json --reporter-json-export', reportPath,\n].join(' ');\n\nlet execError = null;\ntry {\n  execSync(cmd, { encoding: 'utf-8', maxBuffer: 20 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });\n} catch (e) {\n  // Newman exits non-zero on any failed assertion -- the report file is\n  // still written, so this is only fatal if the report never showed up.\n  execError = e.message;\n}\n\nif (!fs.existsSync(reportPath)) {\n  throw new Error('Newman produced no report: ' + (execError || 'unknown error'));\n}\n\nconst report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));\nfs.unlinkSync(reportPath);\n\nconst scenarios = report.run.executions.map((ex) => ({\n  name: ex.item.name,\n  status_code: ex.response.code,\n  assertions_passed: ex.assertions.filter((a) => !a.error).length,\n  assertions_failed: ex.assertions.filter((a) => !!a.error).length,\n  failed_assertions: ex.assertions.filter((a) => !!a.error).map((a) => a.assertion),\n}));\n\nreturn [{\n  json: {\n    incident_id: incidentId,\n    collection_url: collectionUrl,\n    base_url: baseUrl,\n    stats: report.run.stats.assertions,\n    scenarios,\n    all_passed: report.run.stats.assertions.failed === 0,\n  },\n}];\n",
+    };
+
+    @node({
+        name: 'Format Evidence Summary',
+        type: 'n8n-nodes-base.set',
+        version: 3.4,
+        position: [-220, 300],
+    })
+    FormatEvidenceSummary = {
+        mode: 'manual',
+        assignments: {
+            assignments: [
+                {
+                    id: 'slack-channel',
+                    name: 'slack_channel',
+                    type: 'string',
+                    value: '#api-support',
+                },
+                {
+                    id: 'slack-text',
+                    name: 'slack_text',
+                    type: 'string',
+                    value:
+                        "={{ (() => { const passed = $json.all_passed; const icon = passed ? ':white_check_mark:' : ':x:'; const lines = $json.scenarios.map(s => '  ' + (s.assertions_failed === 0 ? ':white_check_mark:' : ':x:') + ' ' + s.name + ' -- HTTP ' + s.status_code); return icon + ' *Postman Evidence Audit: ' + $json.incident_id + '*\\n*Assertions:* ' + $json.stats.total + ' total, ' + $json.stats.failed + ' failed\\n' + lines.join('\\n'); })() }}",
+                },
+            ],
+        },
+        includeOtherFields: true,
+        options: {},
+    };
+
+    @node({
+        name: 'Slack Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [-240, -220],
+    })
+    SlackNote = {
+        content:
+            '**Mocked.** Records what would have been posted instead of calling a real Slack webhook, so repeated audit runs never spam a real channel. Swap for an HTTP Request node pointed at a Slack incoming webhook to go live.',
+        height: 160,
+        width: 300,
+        color: 5,
+    };
+
+    @node({
+        name: 'Post to Slack (mocked)',
+        type: 'n8n-nodes-base.set',
+        version: 3.4,
+        position: [20, 300],
+    })
+    PostToSlackMocked = {
+        mode: 'manual',
+        assignments: {
+            assignments: [
+                {
+                    id: 'mock-1',
+                    name: 'mocked',
+                    type: 'boolean',
+                    value: true,
+                },
+                {
+                    id: 'mock-2',
+                    name: 'would_post_channel',
+                    type: 'string',
+                    value: '={{ $json.slack_channel }}',
+                },
+                {
+                    id: 'mock-3',
+                    name: 'would_post_text',
+                    type: 'string',
+                    value: '={{ $json.slack_text }}',
+                },
+            ],
+        },
+        includeOtherFields: true,
+        options: {},
+    };
+
+    @node({
+        name: 'Respond to Webhook',
+        type: 'n8n-nodes-base.respondToWebhook',
+        version: 1.2,
+        position: [260, 300],
+    })
+    RespondToWebhook = {
+        respondWith: 'json',
+        responseBody:
+            "={{ { status: 'audit-complete', all_passed: $json.all_passed, incident_id: $json.incident_id, stats: $json.stats, scenarios: $json.scenarios, slack: { mocked: $json.mocked, would_post_channel: $json.would_post_channel, would_post_text: $json.would_post_text } } }}",
+    };
+
+    @links()
+    defineRouting() {
+        this.AuditTrigger.out(0).to(this.RunNewmanAudit.in(0));
+        this.RunNewmanAudit.out(0).to(this.FormatEvidenceSummary.in(0));
+        this.FormatEvidenceSummary.out(0).to(this.PostToSlackMocked.in(0));
+        this.PostToSlackMocked.out(0).to(this.RespondToWebhook.in(0));
+    }
+}

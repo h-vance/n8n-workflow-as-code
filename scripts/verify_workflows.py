@@ -26,6 +26,18 @@ FIXTURES = {
         "trigger_name": "Alert Intake",
         "payload": {"incident_id": "VERIFY-002", "service_name": "validator-node-1", "symptom": "sync lag"},
     },
+    "postman-evidence-audit": {
+        "trigger_name": "Audit Trigger",
+        "payload": {"incident_id": "VERIFY-003"},
+    },
+    "container-incident-responder": {
+        "trigger_name": "Incident Trigger",
+        "payload": {
+            "incident_id": "VERIFY-004",
+            "target_type": "docker",
+            "target": "docker-tse-incident-lab-app-1",
+        },
+    },
 }
 
 

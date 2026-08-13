@@ -9,6 +9,8 @@
 |----------|----------------------|
 | [`escalation-autopsy.workflow.ts`](workflows/escalation-autopsy.workflow.ts) | Incident webhook → live call to [aws-bedrock-ops-agent](https://github.com/h-vance/aws-bedrock-ops-agent)'s MCP tool (real JSON-RPC over streamable-HTTP, hand-rolled in a Code node since n8n community edition has no MCP client node) → Slack summary → postmortem draft for [incident-postmortems](https://github.com/h-vance/incident-postmortems) |
 | [`web3-infra-self-healing.workflow.ts`](workflows/web3-infra-self-healing.workflow.ts) | Alert routing by service type (blockchain protocol diagnostics vs. infra/K8s diagnostics), severity scoring, a human-in-the-loop Senior TSE Approval Gate for high-severity cases, simulated self-healing, and an evidence packet |
+| [`postman-evidence-audit.workflow.ts`](workflows/postman-evidence-audit.workflow.ts) | Audit webhook → live `npx newman run` of the real [postman-tse-incident-lab](https://github.com/h-vance/postman-tse-incident-lab) collection (fetched from GitHub, run against the actual lab API), parses genuine pass/fail assertions, formats an evidence summary |
+| [`container-incident-responder.workflow.ts`](workflows/container-incident-responder.workflow.ts) | Alert routing by target type into two real remediation paths: Docker (raw HTTP over the mounted host Docker socket, restarts a real container in [docker-tse-incident-lab](https://github.com/h-vance/docker-tse-incident-lab)) or Kubernetes (`kubectl rollout restart` against a live local kind cluster) — both inspect before/after so the evidence packet proves the remediation actually happened |
 
 See [docs/PORTFOLIO_REVIEW.md](docs/PORTFOLIO_REVIEW.md) for what's real vs. mocked in each.
 

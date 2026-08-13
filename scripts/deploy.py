@@ -23,7 +23,12 @@ STRIP_KEYS = (
     "triggerCount", "meta", "staticData", "pinData", "nodeGroups",
     "activeVersionId", "activeVersion",
 )
-ALL_WORKFLOWS = ["escalation-autopsy", "web3-infra-self-healing"]
+ALL_WORKFLOWS = [
+    "escalation-autopsy",
+    "web3-infra-self-healing",
+    "postman-evidence-audit",
+    "container-incident-responder",
+]
 
 
 def api(method, path, body=None):
