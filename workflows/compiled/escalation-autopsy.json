@@ -1,15 +1,15 @@
 [
   {
-    "updatedAt": "2026-08-13T16:34:09.331Z",
-    "createdAt": "2026-08-13T16:34:09.331Z",
-    "id": "2G3o2hXs5ofdWNfE",
+    "updatedAt": "2026-08-13T16:53:44.361Z",
+    "createdAt": "2026-08-13T16:51:02.175Z",
+    "id": "b1uTthSDA0DcoM5m",
     "name": "Escalation Autopsy",
     "description": null,
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
-        "id": "48834f08-e5ba-45b2-a02d-766e7c9ad8ba",
+        "id": "0f037ecd-1136-4f2d-b03b-e3913c226c0c",
         "name": "Incident Webhook",
         "type": "n8n-nodes-base.webhook",
         "typeVersion": 2,
@@ -23,10 +23,10 @@
           "responseMode": "responseNode",
           "options": {}
         },
-        "webhookId": "f6acdaf4-772f-4d74-9db1-56bacdc7e2ad"
+        "webhookId": "c254e13a-dd1b-4f21-bbca-42c6a205b7b4"
       },
       {
-        "id": "869cf91a-583e-4e8e-9e33-927663e9c2a9",
+        "id": "b366e1de-80d5-4031-92b2-227d255f9eca",
         "name": "Call MCP Triage",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -37,11 +37,11 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "\n// Real, live call to aws-bedrock-ops-agent's MCP server (built earlier this\n// session), reached from inside the Docker network via host.docker.internal.\n// n8n has no built-in MCP client node in the community edition, so this\n// speaks the streamable-HTTP JSON-RPC protocol directly.\nconst incident = $input.item.json;\n\nconst mcpUrl = 'http://host.docker.internal:8001/mcp/';\nconst rpcRequest = {\n  jsonrpc: '2.0',\n  id: 1,\n  method: 'tools/call',\n  params: {\n    name: 'triage_incident',\n    arguments: {\n      bundle: {\n        incident_id: incident.incident_id || incident.ticket_id || ('INC-' + Date.now()),\n        summary: incident.summary || incident.subject || incident.description || '',\n      },\n    },\n  },\n};\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: mcpUrl,\n  headers: {\n    'Content-Type': 'application/json',\n    'Accept': 'application/json, text/event-stream',\n  },\n  body: rpcRequest,\n  json: true,\n  returnFullResponse: true,\n});\n\n// The MCP streamable-HTTP transport replies with an SSE-framed body\n// (\"event: message\\ndata: {...}\"), not a bare JSON document — parse the\n// data line out before decoding it.\nconst rawBody = typeof response.body === 'string' ? response.body : JSON.stringify(response.body);\nconst dataLine = rawBody.split('\\n').find((line) => line.startsWith('data: '));\nif (!dataLine) {\n  throw new Error('No SSE data line in MCP response: ' + rawBody.slice(0, 300));\n}\nconst rpcResponse = JSON.parse(dataLine.slice('data: '.length));\nconst toolText = rpcResponse.result.content[0].text;\nconst triage = JSON.parse(toolText);\n\nreturn [{ json: triage }];\n"
+          "jsCode": "\n// Real, live call to aws-bedrock-ops-agent's MCP server (built earlier this\n// session), reached from inside the Docker network via host.docker.internal.\n// n8n has no built-in MCP client node in the community edition, so this\n// speaks the streamable-HTTP JSON-RPC protocol directly.\n// n8n's webhook node nests the actual POST body under `.body` -- fall\n// back to the top-level item for non-HTTP triggers (e.g. manual runs).\nconst incident = $input.item.json.body || $input.item.json;\n\nconst mcpUrl = 'http://host.docker.internal:8001/mcp/';\nconst rpcRequest = {\n  jsonrpc: '2.0',\n  id: 1,\n  method: 'tools/call',\n  params: {\n    name: 'triage_incident',\n    arguments: {\n      bundle: {\n        incident_id: incident.incident_id || incident.ticket_id || ('INC-' + Date.now()),\n        summary: incident.summary || incident.subject || incident.description || '',\n      },\n    },\n  },\n};\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: mcpUrl,\n  headers: {\n    'Content-Type': 'application/json',\n    'Accept': 'application/json, text/event-stream',\n  },\n  body: rpcRequest,\n  json: true,\n  returnFullResponse: true,\n});\n\n// The MCP streamable-HTTP transport replies with an SSE-framed body\n// (\"event: message\\ndata: {...}\"), not a bare JSON document — parse the\n// data line out before decoding it.\nconst rawBody = typeof response.body === 'string' ? response.body : JSON.stringify(response.body);\nconst dataLine = rawBody.split('\\n').find((line) => line.startsWith('data: '));\nif (!dataLine) {\n  throw new Error('No SSE data line in MCP response: ' + rawBody.slice(0, 300));\n}\nconst rpcResponse = JSON.parse(dataLine.slice('data: '.length));\nconst toolText = rpcResponse.result.content[0].text;\nconst triage = JSON.parse(toolText);\n\nreturn [{ json: triage }];\n"
         }
       },
       {
-        "id": "5fd10bc7-2066-4a6b-8c5a-a39d523fabd3",
+        "id": "6643e267-43ec-4f77-acb7-492aef45fdbe",
         "name": "Format Slack Message",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -72,7 +72,7 @@
         }
       },
       {
-        "id": "f76f34a3-967e-480d-83aa-21abf0957702",
+        "id": "4e750f24-54ab-4185-a7fc-c686d673d7ae",
         "name": "Post to Slack (mocked)",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -108,7 +108,7 @@
         }
       },
       {
-        "id": "1a671cea-156b-423d-b354-51c2d47dbe02",
+        "id": "d5ceb37a-36d7-4e6f-870b-0a3942d681f4",
         "name": "Draft Postmortem",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -138,7 +138,7 @@
         }
       },
       {
-        "id": "4ce055d2-11e7-4d86-9a7d-82bfaa918563",
+        "id": "66d24562-74e8-4b10-b1a2-7fc556fee4ac",
         "name": "Commit Postmortem (mocked)",
         "type": "n8n-nodes-base.set",
         "typeVersion": 3.4,
@@ -180,7 +180,7 @@
         }
       },
       {
-        "id": "60be6d3b-562f-4cf0-86b6-840625f0c51a",
+        "id": "841193fe-aef9-445b-833c-0e93c431dd7a",
         "name": "Merge Results",
         "type": "n8n-nodes-base.merge",
         "typeVersion": 3.2,
@@ -195,7 +195,7 @@
         }
       },
       {
-        "id": "ff4aba8a-0c64-422f-99c7-e286c73dff02",
+        "id": "d25922f0-ba38-4d80-979c-b22f6425f973",
         "name": "Respond to Webhook",
         "type": "n8n-nodes-base.respondToWebhook",
         "typeVersion": 1.2,
@@ -300,29 +300,29 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "e7c5048c-34da-4aa8-ada1-e5fed7f7f6af",
-    "activeVersionId": null,
-    "versionCounter": 1,
-    "triggerCount": 0,
+    "versionId": "e7492f81-6b2c-4593-a9d1-130e4c891d61",
+    "activeVersionId": "e7492f81-6b2c-4593-a9d1-130e4c891d61",
+    "versionCounter": 2,
+    "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
     "shared": [
       {
-        "updatedAt": "2026-08-13T16:34:09.331Z",
-        "createdAt": "2026-08-13T16:34:09.331Z",
+        "updatedAt": "2026-08-13T16:51:02.175Z",
+        "createdAt": "2026-08-13T16:51:02.175Z",
         "role": "workflow:owner",
-        "workflowId": "2G3o2hXs5ofdWNfE",
-        "projectId": "Y4KzgzyrueKywARS",
+        "workflowId": "b1uTthSDA0DcoM5m",
+        "projectId": "I2b0k33sXtEtVS5V",
         "project": {
-          "updatedAt": "2026-08-13T16:22:03.189Z",
-          "createdAt": "2026-08-13T16:21:05.643Z",
-          "id": "Y4KzgzyrueKywARS",
+          "updatedAt": "2026-08-13T16:47:05.653Z",
+          "createdAt": "2026-08-13T16:46:52.598Z",
+          "id": "I2b0k33sXtEtVS5V",
           "name": "Harrison Vance <owner@example.com>",
           "type": "personal",
           "icon": null,
           "description": null,
           "customTelemetryTags": [],
-          "creatorId": "ed1e1dd4-9120-4a52-861c-5ee50fcfde8c"
+          "creatorId": "4c4cec8f-e69f-4e4d-9ef2-2a410fe8793a"
         }
       }
     ],
