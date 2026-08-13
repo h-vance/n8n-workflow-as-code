@@ -8,6 +8,19 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 })
 export class Web3InfraSelfHealing {
     @node({
+        name: 'Overview',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [-700, -180],
+    })
+    OverviewNote = {
+        content:
+            '## Web3 Infra Self-Healing Engine\n\nAn alert routes by service name into one of two diagnostic paths, gets a severity score from that diagnostic data, and branches through a human-in-the-loop approval gate before simulated self-healing runs. Diagnostics are deterministic simulations (derived from the incident ID) -- this never touches real blockchain or Kubernetes infrastructure.',
+        height: 160,
+        width: 700,
+    };
+
+    @node({
         name: 'Alert Intake',
         type: 'n8n-nodes-base.webhook',
         version: 2,
@@ -89,6 +102,20 @@ export class Web3InfraSelfHealing {
     };
 
     @node({
+        name: 'Protocol Path Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [40, 20],
+    })
+    ProtocolPathNote = {
+        content:
+            '**Protocol path.** Taken when the service name looks like a blockchain node. Simulates checking RPC sync lag and peer count -- deterministic per incident ID, so the same incident always produces the same (reproducible) diagnostic result.',
+        height: 140,
+        width: 520,
+        color: 4,
+    };
+
+    @node({
         name: 'Check RPC Sync',
         type: 'n8n-nodes-base.code',
         version: 2,
@@ -128,6 +155,20 @@ const peerCount = 8 + (hash % 20);
 const peersHealthy = peerCount >= 12;
 return [{ json: { ...item, peer_count: peerCount, peers_healthy: peersHealthy, diagnostic_path: 'protocol' } }];
 `,
+    };
+
+    @node({
+        name: 'Infra Path Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [40, 600],
+    })
+    InfraPathNote = {
+        content:
+            '**Infra path.** Taken when the service name looks like a regular API/backend service. Simulates a Kubernetes pod-restart count and a log error rate -- same determinism guarantee as the protocol path.',
+        height: 140,
+        width: 520,
+        color: 4,
     };
 
     @node({
@@ -186,6 +227,20 @@ const severity = unhealthyCount === 0 ? 'low' : unhealthyCount === 1 ? 'medium' 
 const escalation_required = severity === 'high';
 return [{ json: { ...item, severity, escalation_required } }];
 `,
+    };
+
+    @node({
+        name: 'Approval Gate Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [780, -180],
+    })
+    ApprovalGateNote = {
+        content:
+            '**Human-in-the-loop.** High-severity incidents (2+ unhealthy diagnostics) wait for a mocked senior-TSE approval; everything else auto-approves. The approval itself is mocked -- no real paging/Slack integration wired up -- but the branching logic is real.',
+        height: 160,
+        width: 480,
+        color: 5,
     };
 
     @node({
@@ -262,6 +317,20 @@ const action = item.diagnostic_path === 'protocol'
   : 'Rolling restart executed on affected pods';
 return [{ json: { ...item, remediation_action: action, remediation_status: 'completed' } }];
 `,
+    };
+
+    @node({
+        name: 'Evidence Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [1500, -180],
+    })
+    EvidenceNote = {
+        content:
+            '**Mocked posting.** The evidence summary text is real (built from the actual run\'s data); posting it to Jira/Slack is recorded, not executed -- same rationale as escalation-autopsy\'s mocked legs.',
+        height: 160,
+        width: 480,
+        color: 5,
     };
 
     @node({

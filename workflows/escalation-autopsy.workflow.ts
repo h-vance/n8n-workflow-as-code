@@ -45,6 +45,19 @@ export class EscalationAutopsyWorkflow {
     // =====================================================================
 
     @node({
+        name: 'Overview',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [-460, -180],
+    })
+    OverviewNote = {
+        content:
+            '## Escalation Autopsy\n\nAn incident comes in over webhook, gets triaged by a **live call to aws-bedrock-ops-agent\'s MCP server** (real JSON-RPC over streamable-HTTP -- n8n community edition has no MCP client node, so this is hand-rolled in a Code node), then fans out to a Slack summary and a postmortem draft.',
+        height: 160,
+        width: 460,
+    };
+
+    @node({
         name: 'Incident Webhook',
         type: 'n8n-nodes-base.webhook',
         version: 2,
@@ -98,6 +111,20 @@ export class EscalationAutopsyWorkflow {
     };
 
     @node({
+        name: 'Slack Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [40, -180],
+    })
+    SlackNote = {
+        content:
+            '**Mocked.** Records what would have been posted instead of calling a real Slack webhook, so repeated test runs never spam a real channel. Swap for an HTTP Request node pointed at a Slack incoming webhook to go live.',
+        height: 160,
+        width: 300,
+        color: 5,
+    };
+
+    @node({
         name: 'Post to Slack (mocked)',
         type: 'n8n-nodes-base.set',
         version: 3.4,
@@ -128,6 +155,20 @@ export class EscalationAutopsyWorkflow {
             ],
         },
         options: {},
+    };
+
+    @node({
+        name: 'Postmortem Note',
+        type: 'n8n-nodes-base.stickyNote',
+        version: 1,
+        position: [500, -180],
+    })
+    PostmortemNote = {
+        content:
+            '**Draft is real; the commit is mocked.** The markdown postmortem is genuinely built from the triage result. Committing it to the incident-postmortems repo is recorded, not executed, for the same reason as the Slack post.',
+        height: 160,
+        width: 480,
+        color: 5,
     };
 
     @node({
