@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+.DS_Store
+
+# n8nac's instance-scoped sync working copy (auto-generated .d.ts/tsconfig,
+# local sync state) -- the portable source of truth lives in workflows/*.workflow.ts
+workflows/local_*/

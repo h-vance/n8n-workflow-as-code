@@ -1,0 +1,14 @@
+{
+  "name": "n8n-workflow-as-code",
+  "version": "1.0.0",
+  "description": "Portfolio-ready n8n workflows authored as version-controlled TypeScript, verified working against a real n8n instance",
+  "private": true,
+  "scripts": {
+    "verify": "bash scripts/verify-workflows.sh"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@n8n-as-code/cli": "^0.9.8",
+    "typescript": "^7.0.2"
+  }
+}

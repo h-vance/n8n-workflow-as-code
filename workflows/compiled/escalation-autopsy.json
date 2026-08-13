@@ -1,0 +1,334 @@
+[
+  {
+    "updatedAt": "2026-08-13T16:34:09.331Z",
+    "createdAt": "2026-08-13T16:34:09.331Z",
+    "id": "2G3o2hXs5ofdWNfE",
+    "name": "Escalation Autopsy",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "48834f08-e5ba-45b2-a02d-766e7c9ad8ba",
+        "name": "Incident Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -460,
+          260
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "escalation-autopsy",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "f6acdaf4-772f-4d74-9db1-56bacdc7e2ad"
+      },
+      {
+        "id": "869cf91a-583e-4e8e-9e33-927663e9c2a9",
+        "name": "Call MCP Triage",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -220,
+          260
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "\n// Real, live call to aws-bedrock-ops-agent's MCP server (built earlier this\n// session), reached from inside the Docker network via host.docker.internal.\n// n8n has no built-in MCP client node in the community edition, so this\n// speaks the streamable-HTTP JSON-RPC protocol directly.\nconst incident = $input.item.json;\n\nconst mcpUrl = 'http://host.docker.internal:8001/mcp/';\nconst rpcRequest = {\n  jsonrpc: '2.0',\n  id: 1,\n  method: 'tools/call',\n  params: {\n    name: 'triage_incident',\n    arguments: {\n      bundle: {\n        incident_id: incident.incident_id || incident.ticket_id || ('INC-' + Date.now()),\n        summary: incident.summary || incident.subject || incident.description || '',\n      },\n    },\n  },\n};\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: mcpUrl,\n  headers: {\n    'Content-Type': 'application/json',\n    'Accept': 'application/json, text/event-stream',\n  },\n  body: rpcRequest,\n  json: true,\n  returnFullResponse: true,\n});\n\n// The MCP streamable-HTTP transport replies with an SSE-framed body\n// (\"event: message\\ndata: {...}\"), not a bare JSON document — parse the\n// data line out before decoding it.\nconst rawBody = typeof response.body === 'string' ? response.body : JSON.stringify(response.body);\nconst dataLine = rawBody.split('\\n').find((line) => line.startsWith('data: '));\nif (!dataLine) {\n  throw new Error('No SSE data line in MCP response: ' + rawBody.slice(0, 300));\n}\nconst rpcResponse = JSON.parse(dataLine.slice('data: '.length));\nconst toolText = rpcResponse.result.content[0].text;\nconst triage = JSON.parse(toolText);\n\nreturn [{ json: triage }];\n"
+        }
+      },
+      {
+        "id": "5fd10bc7-2066-4a6b-8c5a-a39d523fabd3",
+        "name": "Format Slack Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          20,
+          260
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "slack-channel",
+                "name": "slack_channel",
+                "type": "string",
+                "value": "#incident-review"
+              },
+              {
+                "id": "slack-text",
+                "name": "slack_text",
+                "type": "string",
+                "value": "={{ ':mag: *Escalation Autopsy: ' + $json.incident_id + '*\\n*Top hypothesis (' + $json.hypotheses[0].confidence + '):* ' + $json.hypotheses[0].hypothesis + '\\n*Escalation ready:* ' + $json.escalation_ready + '\\n*Mode:* ' + $json.mode }}"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "f76f34a3-967e-480d-83aa-21abf0957702",
+        "name": "Post to Slack (mocked)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          260,
+          180
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "mock-1",
+                "name": "mocked",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "mock-2",
+                "name": "would_post_channel",
+                "type": "string",
+                "value": "={{ $json.slack_channel }}"
+              },
+              {
+                "id": "mock-3",
+                "name": "would_post_text",
+                "type": "string",
+                "value": "={{ $json.slack_text }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "1a671cea-156b-423d-b354-51c2d47dbe02",
+        "name": "Draft Postmortem",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          500,
+          260
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "pm-path",
+                "name": "postmortem_path",
+                "type": "string",
+                "value": "={{ 'postmortems/' + $('Format Slack Message').item.json.incident_id + '.md' }}"
+              },
+              {
+                "id": "pm-content",
+                "name": "postmortem_content",
+                "type": "string",
+                "value": "={{ '# Postmortem: ' + $('Format Slack Message').item.json.incident_id + '\\n\\n## Summary\\n\\n' + $('Format Slack Message').item.json.hypotheses[0].hypothesis + '\\n\\n## Confidence\\n\\n' + $('Format Slack Message').item.json.hypotheses[0].confidence + '\\n\\n## Escalation\\n\\nEscalation ready: ' + $('Format Slack Message').item.json.escalation_ready + '\\n\\n## Customer communication draft\\n\\n' + $('Format Slack Message').item.json.customer_comms_draft + '\\n\\n_Generated by escalation-autopsy.workflow.ts, triaged via aws-bedrock-ops-agent MCP tool (mode: ' + $('Format Slack Message').item.json.mode + ')._\\n' }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "4ce055d2-11e7-4d86-9a7d-82bfaa918563",
+        "name": "Commit Postmortem (mocked)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          740,
+          260
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "gh-mock-1",
+                "name": "mocked",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "gh-mock-2",
+                "name": "would_commit_repo",
+                "type": "string",
+                "value": "h-vance/incident-postmortems"
+              },
+              {
+                "id": "gh-mock-3",
+                "name": "would_commit_path",
+                "type": "string",
+                "value": "={{ $json.postmortem_path }}"
+              },
+              {
+                "id": "gh-mock-4",
+                "name": "would_commit_content",
+                "type": "string",
+                "value": "={{ $json.postmortem_content }}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "60be6d3b-562f-4cf0-86b6-840625f0c51a",
+        "name": "Merge Results",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          980,
+          260
+        ],
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineAll",
+          "options": {}
+        }
+      },
+      {
+        "id": "ff4aba8a-0c64-422f-99c7-e286c73dff02",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.2,
+        "position": [
+          1220,
+          260
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { status: 'autopsy-complete', slack: $json[0] ?? $json, postmortem: $json[1] ?? undefined } }}"
+        }
+      }
+    ],
+    "connections": {
+      "Incident Webhook": {
+        "main": [
+          [
+            {
+              "node": "Call MCP Triage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call MCP Triage": {
+        "main": [
+          [
+            {
+              "node": "Format Slack Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Slack Message": {
+        "main": [
+          [
+            {
+              "node": "Post to Slack (mocked)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Draft Postmortem",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Draft Postmortem": {
+        "main": [
+          [
+            {
+              "node": "Commit Postmortem (mocked)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Post to Slack (mocked)": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Commit Postmortem (mocked)": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Merge Results": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "e7c5048c-34da-4aa8-ada1-e5fed7f7f6af",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-08-13T16:34:09.331Z",
+        "createdAt": "2026-08-13T16:34:09.331Z",
+        "role": "workflow:owner",
+        "workflowId": "2G3o2hXs5ofdWNfE",
+        "projectId": "Y4KzgzyrueKywARS",
+        "project": {
+          "updatedAt": "2026-08-13T16:22:03.189Z",
+          "createdAt": "2026-08-13T16:21:05.643Z",
+          "id": "Y4KzgzyrueKywARS",
+          "name": "Harrison Vance <owner@example.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "ed1e1dd4-9120-4a52-861c-5ee50fcfde8c"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]
