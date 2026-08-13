@@ -6,3 +6,8 @@ node_modules/
 # n8nac's instance-scoped sync working copy (auto-generated .d.ts/tsconfig,
 # local sync state) -- the portable source of truth lives in workflows/*.workflow.ts
 workflows/local_*/
+
+# generated kubeconfig for the local kind cluster -- embeds real client
+# certs and a host-specific ephemeral port, regenerate with
+# scripts/generate-kubeconfig.sh
+kubeconfig/

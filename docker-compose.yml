@@ -28,7 +28,9 @@ services:
       retries: 20
 
   n8n:
-    image: n8nio/n8n:2.34.5
+    build:
+      context: .
+      dockerfile: Dockerfile.n8n
     restart: unless-stopped
     ports:
       - "5678:5678"
@@ -54,8 +56,12 @@ services:
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
       GENERIC_TIMEZONE: America/New_York
       TZ: America/New_York
+      NODE_FUNCTION_ALLOW_BUILTIN: child_process,fs,http
+      KUBECONFIG: /home/node/.kube/config
     volumes:
       - n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kubeconfig/config:/home/node/.kube/config:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,9 +69,17 @@ services:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      # shares the local kind cluster's Docker network so it can reach the
+      # control-plane container by name (matches its TLS cert's SAN list --
+      # see scripts/generate-kubeconfig.sh)
+      - kind
 
   n8n-worker:
-    image: n8nio/n8n:2.34.5
+    build:
+      context: .
+      dockerfile: Dockerfile.n8n
     restart: unless-stopped
     command: worker --concurrency=5
     environment:
@@ -84,8 +98,12 @@ services:
       N8N_PERSONALIZATION_ENABLED: "false"
       GENERIC_TIMEZONE: America/New_York
       TZ: America/New_York
+      NODE_FUNCTION_ALLOW_BUILTIN: child_process,fs,http
+      KUBECONFIG: /home/node/.kube/config
     volumes:
       - n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kubeconfig/config:/home/node/.kube/config:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,8 +111,16 @@ services:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - kind
 
 volumes:
   postgres_data:
   redis_data:
   n8n_data:
+
+networks:
+  default:
+  kind:
+    external: true

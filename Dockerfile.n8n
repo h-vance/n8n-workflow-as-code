@@ -1,0 +1,16 @@
+FROM n8nio/n8n:2.34.5
+
+USER root
+
+# kubectl for the container-incident-responder workflow's Kubernetes leg --
+# matched to the local kind cluster's server version (v1.36.1). The base
+# image is a hardened, package-manager-less Alpine variant, so fetch the
+# static binary directly rather than relying on apk/curl.
+RUN wget -q "https://dl.k8s.io/release/v1.36.1/bin/linux/arm64/kubectl" -O /usr/local/bin/kubectl \
+    && chmod +x /usr/local/bin/kubectl
+
+# The mounted host Docker socket is owned root:root (660) -- add node to
+# the root group so it can read/write it without running n8n itself as root.
+RUN addgroup node root
+
+USER node
