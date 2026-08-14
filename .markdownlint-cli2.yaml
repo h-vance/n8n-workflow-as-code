@@ -1,0 +1,18 @@
+config:
+  default: true
+  MD013: false
+  MD022: false
+  MD025: false
+  MD031: false
+  MD032: false
+  MD033: false
+  MD041: false
+  MD047: false
+  # The workflow table intentionally uses compact pipes.
+  MD060: false
+
+globs:
+  - "**/*.md"
+
+ignores:
+  - "node_modules"

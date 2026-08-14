@@ -1,9 +1,9 @@
 # n8n Workflow as Code
 
+[![CI](https://github.com/h-vance/n8n-workflow-as-code/actions/workflows/ci.yml/badge.svg)](https://github.com/h-vance/n8n-workflow-as-code/actions/workflows/ci.yml)
 [![n8n](https://www.shieldcn.dev/badge/n8n-000000.svg?variant=default&logo=n8n&logoColor=FFFFFF&size=xs)](https://n8n.io)
-[![TypeScript](https://www.shieldcn.dev/badge/TypeScript-000000.svg?variant=default&logo=TypeScript&logoColor=FFFFFF&size=xs)](https://www.typescriptlang.org)
+[![TypeScript](https://www.shieldcn.dev/badge/TypeScript-000000.svg?variant=default&logo=typescript&logoColor=FFFFFF&size=xs)](https://www.typescriptlang.org)
 [![Docker](https://www.shieldcn.dev/badge/Docker-000000.svg?variant=default&logo=Docker&logoColor=FFFFFF&size=xs)](https://www.docker.com)
-
 
 | Workflow | What it demonstrates |
 |----------|----------------------|
@@ -53,8 +53,23 @@ Open n8n at `http://localhost:5678`.
 ## Development
 
 ```bash
-npm run verify   # push + execute all four workflows against fixture payloads
+# Verify the compiled artifacts still match their TypeScript source.
+# This is what CI runs; it needs no live n8n instance.
+python3 scripts/check_compiled_drift.py
+
+# Regenerate workflows/compiled/*.json after editing a .workflow.ts
+python3 scripts/check_compiled_drift.py --fix
+
+# Full verification: push + execute all four workflows against fixture
+# payloads. Requires a running instance, so this one is local only.
+npm run verify
 ```
+
+The drift check exists because the TypeScript is the source of truth while the
+JSON is the importable artifact, and the easy mistake is editing one without
+regenerating the other. Node ids are excluded from the comparison since
+`n8nac` mints fresh UUIDs on every conversion; n8n wires connections by node
+name, so the graph is still fully compared.
 
 ## Related
 

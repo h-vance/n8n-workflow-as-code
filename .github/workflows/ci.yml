@@ -1,0 +1,56 @@
+name: CI
+
+# The TypeScript files are the source of truth and workflows/compiled/*.json is
+# the importable artifact, so the two must agree. This catches the failure mode
+# the repo is actually exposed to: editing a .workflow.ts and committing
+# without regenerating its JSON.
+#
+# n8nac convert is a pure transform and needs no running n8n, so this gate
+# works in CI. The full scripts/verify_workflows.py, which pushes into a live
+# instance and executes each workflow, still has to be run locally.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  compiled-artifacts:
+    name: Compiled artifacts match source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check compiled workflows against TypeScript source
+        run: python3 scripts/check_compiled_drift.py
+
+  lint:
+    name: Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Markdownlint
+        # Pinned so an upstream release cannot redden the build.
+        run: npx --yes markdownlint-cli2@0.23.2 "**/*.md" "#node_modules"
