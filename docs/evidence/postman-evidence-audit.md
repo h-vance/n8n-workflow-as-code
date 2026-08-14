@@ -2,6 +2,14 @@
 
 Captured: 2026-08-13T18:15:43.658129+00:00
 
+> This is a verbatim capture of a real run and has deliberately not been
+> edited. The Postman request names it quotes, such as
+> `Failure — Revoked key returns 401`, used em dashes at the time. They were
+> renamed to use colons in `postman-tse-incident-lab` on 2026-08-14, after this
+> capture. Regenerating this file means re-running
+> `scripts/verify_workflows.py` against a live n8n instance, so it is left as
+> the historical record rather than hand-edited to look current.
+
 ## Trigger
 
 `POST /webhook/postman-evidence-audit` (real HTTP call, not the manual-run API)
