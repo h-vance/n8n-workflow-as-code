@@ -4,7 +4,7 @@
   "active": false,
   "nodes": [
     {
-      "id": "e2e8f018-54be-4319-b6ad-24e81935fa57",
+      "id": "969d358f-74cd-4163-9aab-185d400a7253",
       "name": "Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "7d5f272a-1145-477c-b396-17b661b673fc",
+      "id": "58ab6684-564a-4f0c-bba6-4c608ba7418c",
       "name": "Incident Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "fb3ed181-a291-4831-8392-9f24cb33db12",
+      "id": "55e40712-5790-4443-bff8-807ce1e3cb14",
       "name": "Normalize Incident",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -78,7 +78,7 @@
       }
     },
     {
-      "id": "e9e26d03-e2b5-432a-94ce-0294c447630b",
+      "id": "6bd3fcc7-758f-47ee-a4cc-554d086a2529",
       "name": "Route by Target Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -145,7 +145,7 @@
       }
     },
     {
-      "id": "4dfd3562-24bd-4790-adfd-e7160d1f3fe5",
+      "id": "3a0e0e19-113a-4eb4-97fa-a981df80e5ec",
       "name": "Docker Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -161,7 +161,7 @@
       }
     },
     {
-      "id": "95127304-6cd7-41e8-8f86-6c6ed261d663",
+      "id": "526f21e2-bb17-4aaa-8a11-4f7cb2b8bae7",
       "name": "Docker: Inspect + Restart",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -176,7 +176,7 @@
       }
     },
     {
-      "id": "9e8267a8-44f0-4206-9696-770e53d2284c",
+      "id": "61477939-9143-4159-9e43-e95cc0596db8",
       "name": "K8s Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -192,7 +192,7 @@
       }
     },
     {
-      "id": "281c0a4d-6d12-497d-833a-7c277e06cd8f",
+      "id": "d9016a16-842d-44e3-a76e-5ebd01d9381e",
       "name": "K8s: Inspect + Rollout Restart",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -207,7 +207,7 @@
       }
     },
     {
-      "id": "a2617f15-8ab8-4305-b3f9-0a4d2af6596a",
+      "id": "85c64983-d2fe-4ed7-be25-c44295e12b72",
       "name": "Format Evidence Summary",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -238,7 +238,7 @@
       }
     },
     {
-      "id": "103416f6-a7d9-49ab-a658-1bc82c914557",
+      "id": "62458a7a-c65e-4efb-bb64-4a09d1b8dee9",
       "name": "Slack Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -247,20 +247,72 @@
         -260
       ],
       "parameters": {
-        "content": "**Mocked.** Records what would have been posted instead of calling a real Slack webhook, so repeated test runs never spam a real channel. Swap for an HTTP Request node pointed at a Slack incoming webhook to go live.",
+        "content": "**Env-gated live post.** When `SLACK_WEBHOOK_URL` is set in the environment, the evidence summary is POSTed to a real Slack incoming webhook via an HTTP Request node. When unset (CI, clean checkouts), it falls back to the mocked Set node so verification runs never depend on -- or spam -- a real channel.",
         "height": 160,
         "width": 300,
         "color": 5
       }
     },
     {
-      "id": "1a066abd-d08f-4c22-a9e7-79955db69d39",
+      "id": "4880328c-6c56-4b04-a080-44bec40ee968",
+      "name": "Slack Configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-webhook-url",
+              "leftValue": "={{ $env.SLACK_WEBHOOK_URL || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7773f7ac-3291-4665-b4b1-4deaafd26924",
+      "name": "Post to Slack (live)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.slack_text }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a65c7d12-1ef0-4fd1-9cdb-0d932f50d327",
       "name": "Post to Slack (mocked)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        560,
-        320
+        780,
+        460
       ],
       "parameters": {
         "mode": "manual",
@@ -291,17 +343,17 @@
       }
     },
     {
-      "id": "f8742f3b-25ad-46e3-93a1-18c67e87a6e5",
+      "id": "5e628e8e-365d-4da9-a574-378ef8935627",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
       "position": [
-        800,
+        1020,
         320
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { status: 'incident-response-complete', incident_id: $json.incident_id, target_type: $json.target_type, target: $json.target, remediation: $json.remediation, before: $json.before, after: $json.after, remediated: $json.remediated, slack: { mocked: $json.mocked, would_post_channel: $json.would_post_channel, would_post_text: $json.would_post_text } } }}"
+        "responseBody": "={{ (() => { const d = $('Format Evidence Summary').first().json; const live = ($env.SLACK_WEBHOOK_URL || '') !== ''; return { status: 'incident-response-complete', incident_id: d.incident_id, target_type: d.target_type, target: d.target, remediation: d.remediation, before: d.before, after: d.after, remediated: d.remediated, slack: { live, mocked: !live, channel: d.slack_channel, text: d.slack_text } }; })() }}"
       }
     }
   ],
@@ -372,7 +424,36 @@
       "main": [
         [
           {
+            "node": "Slack Configured?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Configured?": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack (live)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Post to Slack (mocked)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Slack (live)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
             "type": "main",
             "index": 0
           }

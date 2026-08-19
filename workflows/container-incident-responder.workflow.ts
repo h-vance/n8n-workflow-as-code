@@ -193,17 +193,54 @@ export class ContainerIncidentResponder {
     })
     SlackNote = {
         content:
-            '**Mocked.** Records what would have been posted instead of calling a real Slack webhook, so repeated test runs never spam a real channel. Swap for an HTTP Request node pointed at a Slack incoming webhook to go live.',
+            '**Env-gated live post.** When `SLACK_WEBHOOK_URL` is set in the environment, the evidence summary is POSTed to a real Slack incoming webhook via an HTTP Request node. When unset (CI, clean checkouts), it falls back to the mocked Set node so verification runs never depend on -- or spam -- a real channel.',
         height: 160,
         width: 300,
         color: 5,
     };
 
     @node({
+        name: 'Slack Configured?',
+        type: 'n8n-nodes-base.if',
+        version: 2.2,
+        position: [540, 320],
+    })
+    SlackConfigured = {
+        conditions: {
+            options: { caseSensitive: true, leftValue: '', typeValidation: 'loose', version: 2 },
+            conditions: [
+                {
+                    id: 'has-webhook-url',
+                    leftValue: "={{ $env.SLACK_WEBHOOK_URL || '' }}",
+                    rightValue: '',
+                    operator: { type: 'string', operation: 'notEmpty', singleValue: true },
+                },
+            ],
+            combinator: 'and',
+        },
+        options: {},
+    };
+
+    @node({
+        name: 'Post to Slack (live)',
+        type: 'n8n-nodes-base.httpRequest',
+        version: 4.2,
+        position: [780, 180],
+    })
+    PostToSlackLive = {
+        method: 'POST',
+        url: '={{ $env.SLACK_WEBHOOK_URL }}',
+        sendBody: true,
+        specifyBody: 'json',
+        jsonBody: '={{ JSON.stringify({ text: $json.slack_text }) }}',
+        options: {},
+    };
+
+    @node({
         name: 'Post to Slack (mocked)',
         type: 'n8n-nodes-base.set',
         version: 3.4,
-        position: [560, 320],
+        position: [780, 460],
     })
     PostToSlackMocked = {
         mode: 'manual',
@@ -237,12 +274,12 @@ export class ContainerIncidentResponder {
         name: 'Respond to Webhook',
         type: 'n8n-nodes-base.respondToWebhook',
         version: 1.2,
-        position: [800, 320],
+        position: [1020, 320],
     })
     RespondToWebhook = {
         respondWith: 'json',
         responseBody:
-            "={{ { status: 'incident-response-complete', incident_id: $json.incident_id, target_type: $json.target_type, target: $json.target, remediation: $json.remediation, before: $json.before, after: $json.after, remediated: $json.remediated, slack: { mocked: $json.mocked, would_post_channel: $json.would_post_channel, would_post_text: $json.would_post_text } } }}",
+            "={{ (() => { const d = $('Format Evidence Summary').first().json; const live = ($env.SLACK_WEBHOOK_URL || '') !== ''; return { status: 'incident-response-complete', incident_id: d.incident_id, target_type: d.target_type, target: d.target, remediation: d.remediation, before: d.before, after: d.after, remediated: d.remediated, slack: { live, mocked: !live, channel: d.slack_channel, text: d.slack_text } }; })() }}",
     };
 
     @links()
@@ -253,7 +290,10 @@ export class ContainerIncidentResponder {
         this.RouteByTargetType.out(1).to(this.K8sInspectRolloutRestart.in(0));
         this.DockerInspectRestart.out(0).to(this.FormatEvidenceSummary.in(0));
         this.K8sInspectRolloutRestart.out(0).to(this.FormatEvidenceSummary.in(0));
-        this.FormatEvidenceSummary.out(0).to(this.PostToSlackMocked.in(0));
+        this.FormatEvidenceSummary.out(0).to(this.SlackConfigured.in(0));
+        this.SlackConfigured.out(0).to(this.PostToSlackLive.in(0));
+        this.SlackConfigured.out(1).to(this.PostToSlackMocked.in(0));
+        this.PostToSlackLive.out(0).to(this.RespondToWebhook.in(0));
         this.PostToSlackMocked.out(0).to(this.RespondToWebhook.in(0));
     }
 }

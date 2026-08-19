@@ -57,6 +57,8 @@ services:
       GENERIC_TIMEZONE: America/New_York
       TZ: America/New_York
       NODE_FUNCTION_ALLOW_BUILTIN: child_process,fs,http
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       KUBECONFIG: /home/node/.kube/config
     volumes:
       - n8n_data:/home/node/.n8n
@@ -99,6 +101,8 @@ services:
       GENERIC_TIMEZONE: America/New_York
       TZ: America/New_York
       NODE_FUNCTION_ALLOW_BUILTIN: child_process,fs,http
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       KUBECONFIG: /home/node/.kube/config
     volumes:
       - n8n_data:/home/node/.n8n
