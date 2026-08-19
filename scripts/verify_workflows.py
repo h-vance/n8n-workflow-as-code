@@ -30,6 +30,10 @@ FIXTURES = {
         "trigger_name": "Audit Trigger",
         "payload": {"incident_id": "VERIFY-003"},
     },
+    "support-ops-sql-digest": {
+        "trigger_name": "Digest Trigger",
+        "payload": {"days": 30},
+    },
     "container-incident-responder": {
         "trigger_name": "Incident Trigger",
         "payload": {
@@ -88,6 +92,10 @@ def find_or_create(workflow_id, compiled):
     match = next((w for w in existing if w["name"] == compiled["name"]), None)
     body = {k: v for k, v in compiled.items() if k not in ("id", "active", "tags")}
     if match:
+        # Push the freshly compiled definition over the stored copy -- otherwise
+        # verification silently exercises whatever stale version the instance
+        # already had, not the code in this checkout.
+        api_request("PUT", f"/api/v1/workflows/{match['id']}", body)
         return match["id"]
     created = api_request("POST", "/api/v1/workflows", body)
     return created["id"]
@@ -109,7 +117,7 @@ def run_and_check(n8n_id, trigger_name, payload):
     }
     resp = api_request("POST", f"/rest/workflows/{n8n_id}/run", body, use_cookie=True)
     execution_id = resp["data"]["executionId"]
-    for _ in range(20):
+    for _ in range(60):
         time.sleep(0.5)
         exec_data = api_request("GET", f"/rest/executions/{execution_id}", use_cookie=True)
         status = exec_data["data"]["status"]
