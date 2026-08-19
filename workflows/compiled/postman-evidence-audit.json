@@ -4,7 +4,7 @@
   "active": false,
   "nodes": [
     {
-      "id": "9c49c6cc-04bb-41d7-85ee-10cc9e09551a",
+      "id": "04944e2e-936e-485a-adc2-f60522f92635",
       "name": "Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "1e3d59f9-9d87-413e-b351-d3a8806514a7",
+      "id": "9c3f0a90-6007-48cc-a71c-e02c65f458f8",
       "name": "Audit Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "40ec092d-24b1-4dc5-8206-28ed416917c8",
+      "id": "6639eaf2-ad29-441f-ac14-3d7bf560b71c",
       "name": "Newman Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -51,7 +51,7 @@
       }
     },
     {
-      "id": "9baa8c97-2c7d-4399-9937-a1040880f7ba",
+      "id": "e089c78b-be8e-4174-b763-101b9a61acb4",
       "name": "Run Newman Audit",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -62,11 +62,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "\nconst { execSync } = require('child_process');\nconst fs = require('fs');\n\n// n8n's webhook node nests the real POST body under `.body` -- fall back\n// to the top-level item for non-HTTP (manual) triggers.\nconst payload = $input.item.json.body || $input.item.json;\nconst incidentId = payload.incident_id || ('AUDIT-' + Date.now());\nconst baseUrl = payload.base_url || 'http://host.docker.internal:8088';\nconst reportPath = '/tmp/newman-' + incidentId.replace(/[^a-zA-Z0-9_-]/g, '') + '-' + Date.now() + '.json';\n\nconst collectionUrl = 'https://raw.githubusercontent.com/h-vance/postman-tse-incident-lab/main/postman/tse-api-incident-lab.postman_collection.json';\nconst environmentUrl = 'https://raw.githubusercontent.com/h-vance/postman-tse-incident-lab/main/postman/tse-local-lab.postman_environment.json';\n\nconst cmd = [\n  'npx --yes newman run', collectionUrl,\n  '-e', environmentUrl,\n  '--env-var', 'base_url=' + baseUrl,\n  '--reporters json --reporter-json-export', reportPath,\n].join(' ');\n\nlet execError = null;\ntry {\n  execSync(cmd, { encoding: 'utf-8', maxBuffer: 20 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });\n} catch (e) {\n  // Newman exits non-zero on any failed assertion -- the report file is\n  // still written, so this is only fatal if the report never showed up.\n  execError = e.message;\n}\n\nif (!fs.existsSync(reportPath)) {\n  throw new Error('Newman produced no report: ' + (execError || 'unknown error'));\n}\n\nconst report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));\nfs.unlinkSync(reportPath);\n\nconst scenarios = report.run.executions.map((ex) => ({\n  name: ex.item.name,\n  status_code: ex.response.code,\n  assertions_passed: ex.assertions.filter((a) => !a.error).length,\n  assertions_failed: ex.assertions.filter((a) => !!a.error).length,\n  failed_assertions: ex.assertions.filter((a) => !!a.error).map((a) => a.assertion),\n}));\n\nreturn [{\n  json: {\n    incident_id: incidentId,\n    collection_url: collectionUrl,\n    base_url: baseUrl,\n    stats: report.run.stats.assertions,\n    scenarios,\n    all_passed: report.run.stats.assertions.failed === 0,\n  },\n}];\n"
+        "jsCode": "\nconst { execSync } = require('child_process');\nconst fs = require('fs');\n\n// n8n's webhook node nests the real POST body under `.body` -- fall back\n// to the top-level item for non-HTTP (manual) triggers.\nconst payload = $input.item.json.body || $input.item.json;\nconst incidentId = payload.incident_id || ('AUDIT-' + Date.now());\nconst baseUrl = payload.base_url || 'http://host.docker.internal:8099';\nconst reportPath = '/tmp/newman-' + incidentId.replace(/[^a-zA-Z0-9_-]/g, '') + '-' + Date.now() + '.json';\n\nconst collectionUrl = 'https://raw.githubusercontent.com/h-vance/postman-tse-incident-lab/main/postman/tse-api-incident-lab.postman_collection.json';\nconst environmentUrl = 'https://raw.githubusercontent.com/h-vance/postman-tse-incident-lab/main/postman/tse-local-lab.postman_environment.json';\n\nconst cmd = [\n  'npx --yes newman run', collectionUrl,\n  '-e', environmentUrl,\n  '--env-var', 'base_url=' + baseUrl,\n  '--reporters json --reporter-json-export', reportPath,\n].join(' ');\n\nlet execError = null;\ntry {\n  execSync(cmd, { encoding: 'utf-8', maxBuffer: 20 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });\n} catch (e) {\n  // Newman exits non-zero on any failed assertion -- the report file is\n  // still written, so this is only fatal if the report never showed up.\n  execError = e.message;\n}\n\nif (!fs.existsSync(reportPath)) {\n  throw new Error('Newman produced no report: ' + (execError || 'unknown error'));\n}\n\nconst report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));\nfs.unlinkSync(reportPath);\n\n// A request that never got a response (API down, DNS failure) has no\n// `response` and no `assertions` -- report it as a failed scenario\n// instead of letting the audit itself crash on undefined.\nconst scenarios = report.run.executions.map((ex) => {\n  const assertions = ex.assertions || [];\n  return {\n    name: ex.item.name,\n    status_code: ex.response ? ex.response.code : null,\n    request_error: ex.requestError ? String(ex.requestError.message || ex.requestError) : null,\n    assertions_passed: assertions.filter((a) => !a.error).length,\n    assertions_failed: assertions.filter((a) => !!a.error).length,\n    failed_assertions: assertions.filter((a) => !!a.error).map((a) => a.assertion),\n  };\n});\n\nreturn [{\n  json: {\n    incident_id: incidentId,\n    collection_url: collectionUrl,\n    base_url: baseUrl,\n    stats: report.run.stats.assertions,\n    scenarios,\n    all_passed: report.run.stats.assertions.failed === 0 && scenarios.every((s) => !s.request_error),\n  },\n}];\n"
       }
     },
     {
-      "id": "6387210d-598a-4a70-907d-d2e3bb549c4a",
+      "id": "3144925a-85b0-444d-a275-ac5bcc7ef1bd",
       "name": "Format Evidence Summary",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -88,7 +88,7 @@
               "id": "slack-text",
               "name": "slack_text",
               "type": "string",
-              "value": "={{ (() => { const passed = $json.all_passed; const icon = passed ? ':white_check_mark:' : ':x:'; const lines = $json.scenarios.map(s => '  ' + (s.assertions_failed === 0 ? ':white_check_mark:' : ':x:') + ' ' + s.name + ' -- HTTP ' + s.status_code); return icon + ' *Postman Evidence Audit: ' + $json.incident_id + '*\\n*Assertions:* ' + $json.stats.total + ' total, ' + $json.stats.failed + ' failed\\n' + lines.join('\\n'); })() }}"
+              "value": "={{ (() => { const passed = $json.all_passed; const icon = passed ? ':white_check_mark:' : ':x:'; const lines = $json.scenarios.map(s => '  ' + (s.assertions_failed === 0 && !s.request_error ? ':white_check_mark:' : ':x:') + ' ' + s.name + ' -- ' + (s.status_code ? 'HTTP ' + s.status_code : 'NO RESPONSE: ' + (s.request_error || 'unknown'))); return icon + ' *Postman Evidence Audit: ' + $json.incident_id + '*\\n*Assertions:* ' + $json.stats.total + ' total, ' + $json.stats.failed + ' failed\\n' + lines.join('\\n'); })() }}"
             }
           ]
         },
@@ -97,7 +97,7 @@
       }
     },
     {
-      "id": "1fd23036-3732-4343-bc54-ec4448fe1c08",
+      "id": "a4389a7b-7f86-41e7-8bd5-c306a9da480c",
       "name": "Slack Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -113,7 +113,7 @@
       }
     },
     {
-      "id": "eadab7a0-5c6a-4078-9f25-deffad91e534",
+      "id": "a963c29b-92c0-496a-83ba-c09d6a9515bd",
       "name": "Post to Slack (mocked)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -150,7 +150,7 @@
       }
     },
     {
-      "id": "cdca9d9d-e707-49b9-8f7a-46cc2e814470",
+      "id": "f7df4110-2a70-4cfe-8d6c-541801594570",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
