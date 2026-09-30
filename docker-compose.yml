@@ -59,6 +59,7 @@ services:
       NODE_FUNCTION_ALLOW_BUILTIN: child_process,fs,http
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
       INTERCOM_CLIENT_SECRET: ${INTERCOM_CLIENT_SECRET:-}
+      FLOW_DOCTOR_TOKEN: ${FLOW_DOCTOR_TOKEN:-}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       KUBECONFIG: /home/node/.kube/config
     volumes:
@@ -104,6 +105,7 @@ services:
       NODE_FUNCTION_ALLOW_BUILTIN: child_process,fs,http
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
       INTERCOM_CLIENT_SECRET: ${INTERCOM_CLIENT_SECRET:-}
+      FLOW_DOCTOR_TOKEN: ${FLOW_DOCTOR_TOKEN:-}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       KUBECONFIG: /home/node/.kube/config
     volumes:
