@@ -1,0 +1,19 @@
+# Demo mode ONLY (h-vance/n8n-workflow-as-code#4). Day to day n8n runs without the host Docker socket or the kind
+# kubeconfig: a foothold in n8n must not reach the host's Docker daemon. The demo workflows that run docker/kubectl from
+# Code nodes (Container Incident Responder, Escalation Autopsy) need these mounts, so for a demo start n8n with both files:
+#   docker compose -f docker-compose.yml -f docker-compose.demos.yml up -d
+# and go back to normal with:
+#   docker compose up -d
+services:
+  n8n:
+    environment:
+      KUBECONFIG: /home/node/.kube/config
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kubeconfig/config:/home/node/.kube/config:ro
+  n8n-worker:
+    environment:
+      KUBECONFIG: /home/node/.kube/config
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kubeconfig/config:/home/node/.kube/config:ro

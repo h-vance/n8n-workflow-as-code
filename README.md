@@ -26,6 +26,10 @@ See [docs/PORTFOLIO_REVIEW.md](docs/PORTFOLIO_REVIEW.md) for what's real vs. moc
 # Bring up a local n8n instance (Postgres + Redis + n8n + worker, queue mode)
 docker compose up -d
 
+# Demo mode only: adds the host Docker socket and the kind kubeconfig for the workflows that run
+# docker/kubectl from Code nodes (Container Incident Responder, Escalation Autopsy). Back to normal: docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.demos.yml up -d
+
 # Install the n8n-as-code CLI
 npm install
 

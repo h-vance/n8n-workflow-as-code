@@ -61,11 +61,8 @@ services:
       INTERCOM_CLIENT_SECRET: ${INTERCOM_CLIENT_SECRET:-}
       FLOW_DOCTOR_TOKEN: ${FLOW_DOCTOR_TOKEN:-}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      KUBECONFIG: /home/node/.kube/config
     volumes:
       - n8n_data:/home/node/.n8n
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./kubeconfig/config:/home/node/.kube/config:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,11 +104,8 @@ services:
       INTERCOM_CLIENT_SECRET: ${INTERCOM_CLIENT_SECRET:-}
       FLOW_DOCTOR_TOKEN: ${FLOW_DOCTOR_TOKEN:-}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      KUBECONFIG: /home/node/.kube/config
     volumes:
       - n8n_data:/home/node/.n8n
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./kubeconfig/config:/home/node/.kube/config:ro
     depends_on:
       postgres:
         condition: service_healthy
